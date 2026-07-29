@@ -63,10 +63,11 @@ jobs:
       if: ${{ env.TARGET == 'immortalwrt' }}
       env:
         REPO_URL: https://github.com/naoki66/ImmortalWrt-for-Gemtek-XR1710G
-        REPO_BRANCH: 5747ad3
+        REPO_BRANCH: master
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
+        cd openwrt && git checkout 5747ad3 && cd ..
         chmod -R +x openwrt/
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
@@ -78,6 +79,7 @@ jobs:
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
+        cd openwrt && git checkout 5747ad3 && cd ..
         chmod -R +x openwrt/
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
