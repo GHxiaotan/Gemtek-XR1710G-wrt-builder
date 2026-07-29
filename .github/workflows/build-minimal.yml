@@ -30,22 +30,22 @@ jobs:
       - name: Clone YYH2913 source (xr1710g-6.18)
         run: |
           git clone --depth=1 -b xr1710g-6.18 \
-            https://github.com/YYH2913/openwrt.git /workdir
+            https://github.com/YYH2913/openwrt.git $GITHUB_WORKSPACE/openwrt
 
-      - name: Apply only Bridge Offload patches
-        working-directory: /workdir
+      - name: Apply Bridge Offload patches
+        working-directory: ${{ github.workspace }}/openwrt
         run: |
           set -ex
           GENERIC_PATCH="target/linux/generic/pending-6.18"
 
           # 1. Replace 675-04 (VLAN passthrough → bridge flowtable type)
           rm -f $GENERIC_PATCH/675-04-*.patch
-          cp /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/builder/patches/675-04-netfilter-nf_flow_table-add-bridge-flowtable-type.patch \
+          cp ${{ github.workspace }}/builder/patches/675-04-netfilter-nf_flow_table-add-bridge-flowtable-type.patch \
              $GENERIC_PATCH/
           echo "✅ 675-04 bridge flowtable type"
 
           # 2. Add 675-05 (bridge conntrack VLAN PPPoE)
-          cp /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/builder/patches/675-05-netfilter-bridge-Add-conntrack-double-vlan-pppoe.patch \
+          cp ${{ github.workspace }}/builder/patches/675-05-netfilter-bridge-Add-conntrack-double-vlan-pppoe.patch \
              $GENERIC_PATCH/
           echo "✅ 675-05 bridge conntrack"
 
@@ -54,13 +54,12 @@ jobs:
           echo "✅ kernel config"
 
       - name: Build firmware
-        working-directory: /workdir
+        working-directory: ${{ github.workspace }}/openwrt
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # Minimal config: default + bridge offload module
           make defconfig
           echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> .config
           make defconfig
@@ -69,17 +68,17 @@ jobs:
           make -j$(nproc) || make -j1 V=s
 
       - name: Collect firmware
-        working-directory: /workdir
+        working-directory: ${{ github.workspace }}/openwrt
         run: |
-          mkdir -p /tmp/release
-          find bin/targets/airoha/an7581 -name "*.itb" -exec cp {} /tmp/release/ \;
-          find bin/targets/airoha/an7581 -name "sha256sums" -exec cp {} /tmp/release/ \;
-          cp .config /tmp/release/config.buildinfo
-          ls -lh /tmp/release/
+          mkdir -p ${{ github.workspace }}/release
+          find bin/targets/airoha/an7581 -name "*.itb" -exec cp {} ${{ github.workspace }}/release/ \;
+          find bin/targets/airoha/an7581 -name "sha256sums" -exec cp {} ${{ github.workspace }}/release/ \;
+          cp .config ${{ github.workspace }}/release/config.buildinfo
+          ls -lh ${{ github.workspace }}/release/
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: XR1710G-bridge-offload-minimal
-          path: /tmp/release/
+          path: release/
           retention-days: 90
