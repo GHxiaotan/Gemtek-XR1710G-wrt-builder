@@ -50,7 +50,12 @@ GENERIC_PATCH_DIR="target/linux/generic/pending-6.18"
 
 echo "=== 开始注入 Bridge Offload 补丁 ==="
 
-# 删除 naoki66 的旧 675-04（VLAN透传），替换为 bridge flowtable 类型
+# 0. 删除与最新源码冲突的 634 补丁（PPE init at TC block bind）
+# 该补丁的上下文已与 naoki66 最新源码不匹配
+rm -f $PATCH_DIR/634-*.patch
+echo "⚠️ 已移除冲突的 634 补丁"
+
+# 1. 删除 naoki66 的旧 675-04（VLAN透传），替换为 bridge flowtable 类型
 rm -f $PATCH_DIR/675-04-*.patch
 cp "$GITHUB_WORKSPACE/patches/675-04-netfilter-nf_flow_table-add-bridge-flowtable-type.patch" \
    $PATCH_DIR/
