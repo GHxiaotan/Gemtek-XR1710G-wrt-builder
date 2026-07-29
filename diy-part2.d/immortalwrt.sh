@@ -66,10 +66,7 @@ cp "$GITHUB_WORKSPACE/patches/675-05-netfilter-bridge-Add-conntrack-double-vlan-
    $GENERIC_PATCH_DIR/
 echo "✅ 675-05 bridge conntrack 已添加"
 
-# 添加 930（PPE stale flow flush on FDB/STA events）
-cp "$GITHUB_WORKSPACE/patches/930-net-airoha-ppe-flush-stale-PPE-flows-on-FDB-and-STA-events.patch" \
    $PATCH_DIR/
-echo "✅ 930 PPE stale flow flush 已添加"
 
 # 5. 写入内核配置到 an7581/config-6.18
 echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> target/linux/airoha/an7581/config-6.18
