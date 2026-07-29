@@ -71,4 +71,7 @@ cp "$GITHUB_WORKSPACE/patches/930-net-airoha-ppe-flush-stale-PPE-flows-on-FDB-an
    $PATCH_DIR/
 echo "✅ 930 PPE stale flow flush 已添加"
 
+# 5. 写入内核配置到 an7581/config-6.18
+echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> target/linux/airoha/an7581/config-6.18
+echo "✅ 内核配置 NF_FLOW_TABLE_BRIDGE=m 已写入"
 echo "=== Bridge Offload 补丁注入完成 ==="
