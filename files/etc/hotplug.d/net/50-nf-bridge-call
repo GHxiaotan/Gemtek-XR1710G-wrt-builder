@@ -1,0 +1,7 @@
+#!/bin/sh
+[ "$ACTION" = "ifup" ] || exit 0
+case "$INTERFACE" in
+  br-*) ;;
+  *) exit 0 ;;
+esac
+/etc/init.d/firewall reload 2>/dev/null

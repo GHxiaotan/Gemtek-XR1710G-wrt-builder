@@ -41,3 +41,29 @@ rm -rf tmp/openwrt-packages
 sed -i '/CONFIG_PACKAGE_luci-i18n-clientstatus-zh-cn/d' .config
 sed -i '/CONFIG_PACKAGE_luci-app-clientstatus/d' .config
 sed -i '/CONFIG_PACKAGE_mihomo-alpha/d' .config
+
+# =================================================================
+# 步骤 6：Bridge Offload 补丁注入
+# =================================================================
+PATCH_DIR="target/linux/airoha/patches-6.18"
+GENERIC_PATCH_DIR="target/linux/generic/pending-6.18"
+
+echo "=== 开始注入 Bridge Offload 补丁 ==="
+
+# 删除 naoki66 的旧 675-04（VLAN透传），替换为 bridge flowtable 类型
+rm -f $PATCH_DIR/675-04-*.patch
+cp "$GITHUB_WORKSPACE/patches/675-04-netfilter-nf_flow_table-add-bridge-flowtable-type.patch" \
+   $PATCH_DIR/
+echo "✅ 675-04 bridge flowtable type 已替换"
+
+# 添加 675-05（bridge conntrack double VLAN PPPoE）
+cp "$GITHUB_WORKSPACE/patches/675-05-netfilter-bridge-Add-conntrack-double-vlan-pppoe.patch" \
+   $GENERIC_PATCH_DIR/
+echo "✅ 675-05 bridge conntrack 已添加"
+
+# 添加 930（PPE stale flow flush on FDB/STA events）
+cp "$GITHUB_WORKSPACE/patches/930-net-airoha-ppe-flush-stale-PPE-flows-on-FDB-and-STA-events.patch" \
+   $PATCH_DIR/
+echo "✅ 930 PPE stale flow flush 已添加"
+
+echo "=== Bridge Offload 补丁注入完成 ==="

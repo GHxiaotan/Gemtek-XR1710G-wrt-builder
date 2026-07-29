@@ -135,6 +135,11 @@ jobs:
     - name: DIY part2 — ImmortalWrt
       if: ${{ env.TARGET == 'immortalwrt' }}
       run: |
+        # 复制 files/（热插拔脚本等）到源码
+        if [ -d "$GITHUB_WORKSPACE/files" ]; then
+          cp -a "$GITHUB_WORKSPACE/files/." openwrt/files/ 2>/dev/null || mkdir -p openwrt/files && cp -a "$GITHUB_WORKSPACE/files/." openwrt/files/
+          echo "=== 已复制 files/ ==="
+        fi
         chmod +x "$DIY_P2_DIR/immortalwrt.sh"
         cd openwrt && "$GITHUB_WORKSPACE/$DIY_P2_DIR/immortalwrt.sh"
 
