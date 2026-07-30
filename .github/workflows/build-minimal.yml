@@ -42,11 +42,7 @@ jobs:
           rm -f $GENERIC_PATCH/675-04-*.patch
           cp ${{ github.workspace }}/builder/patches/675-04-*.patch $GENERIC_PATCH/
           cp ${{ github.workspace }}/builder/patches/675-05-*.patch $GENERIC_PATCH/
-          echo "✅ Patches applied"
-
-          # Enable kernel module in TARGET config
-          echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> target/linux/airoha/an7581/config-6.18
-          echo "✅ Kernel config set"
+          echo "✅ Patches copied to pending-6.18 (will be applied by quilt during kernel build)"
 
       - name: Build firmware
         working-directory: ${{ github.workspace }}/openwrt
@@ -56,28 +52,31 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # Step 1: Set the EXACT target device before defconfig
+          # Step 1: Set EXACT target device
           cat > .config << 'EOF'
           CONFIG_TARGET_airoha=y
           CONFIG_TARGET_airoha_an7581=y
           CONFIG_TARGET_airoha_an7581_DEVICE_gemtek_xr1710g-ubi=y
-          CONFIG_NF_FLOW_TABLE_BRIDGE=m
           EOF
+          sed -i 's/^ *//' .config
 
-          # Step 2: Expand config for this target
+          # Step 2: Generate full config for this target
           make defconfig
 
-          # Step 3: Verify correct target
-          echo "=== Target verification ==="
-          grep "CONFIG_TARGET_airoha_an7581" .config | head -3
+          # Step 3: Add NF_FLOW_TABLE_BRIDGE to .config AFTER defconfig
+          # DO NOT run make oldconfig - it will strip unknown symbols!
+          # The quilt patch system will apply the Kconfig patch during kernel compile,
+          # and the kernel build reads this .config value.
+          sed -i '/CONFIG_NF_FLOW_TABLE_BRIDGE/d' .config
+          echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> .config
+
+          # Step 4: Verify
+          echo "=== Verification ==="
           grep "CONFIG_TARGET_PROFILE" .config
-          grep "CONFIG_TARGET_BOARD" .config
+          grep "CONFIG_NF_FLOW_TABLE_BRIDGE" .config
+          grep "CONFIG_NF_FLOW_TABLE" .config | head -5
 
-          # Step 4: Verify bridge offload
-          echo "=== Bridge offload verification ==="
-          grep "NF_FLOW_TABLE_BRIDGE" .config || echo "WARNING: not found!"
-
-          # Step 5: Build
+          # Step 5: Build (patches applied by quilt during kernel compile)
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
