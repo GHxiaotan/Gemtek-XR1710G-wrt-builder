@@ -49,7 +49,7 @@ jobs:
              $GENERIC_PATCH/
           echo "✅ 675-05 bridge conntrack"
 
-          # 3. Enable kernel module
+          # 3. Enable kernel module IN THE TARGET CONFIG (before defconfig!)
           echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> target/linux/airoha/an7581/config-6.18
           echo "✅ kernel config"
 
@@ -57,12 +57,25 @@ jobs:
         working-directory: ${{ github.workspace }}/openwrt
         run: |
           export FORCE_UNSAFE_CONFIGURE=1
+
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+          # Generate .config for airoha/an7581 target
           make defconfig
+
+          # Force NF_FLOW_TABLE_BRIDGE=m (in case defconfig didn't pick it up)
+          sed -i '/CONFIG_NF_FLOW_TABLE_BRIDGE/d' .config
           echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> .config
-          make defconfig
+
+          # Re-sync config (answer Y to new options automatically)
+          yes "" 2>/dev/null | make oldconfig || true
+
+          # Verify the option is set
+          grep "NF_FLOW_TABLE_BRIDGE" .config || echo "WARNING: NF_FLOW_TABLE_BRIDGE not found in .config"
+
+          # Verify correct target
+          grep "CONFIG_TARGET_airoha_an7581" .config
 
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
@@ -71,8 +84,8 @@ jobs:
         working-directory: ${{ github.workspace }}/openwrt
         run: |
           mkdir -p ${{ github.workspace }}/release
-          find bin/targets/airoha/an7581 -name "*.itb" -exec cp {} ${{ github.workspace }}/release/ \;
-          find bin/targets/airoha/an7581 -name "sha256sums" -exec cp {} ${{ github.workspace }}/release/ \;
+          find bin/targets -name "*.itb" -exec cp {} ${{ github.workspace }}/release/ \;
+          find bin/targets -name "sha256sums" -exec cp {} ${{ github.workspace }}/release/ \;
           cp .config ${{ github.workspace }}/release/config.buildinfo
           ls -lh ${{ github.workspace }}/release/
 
