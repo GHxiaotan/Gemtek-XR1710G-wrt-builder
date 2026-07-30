@@ -1,5 +1,7 @@
 #!/bin/bash
 # Fix XR1710G DTS: add missing PCIe configuration from naoki66's gemtek DTS
+# NOTE: Only use reset constants available in YYH's kernel tree (EN7581_PCIE0/1_RST)
+#       EN7581_PCIC_PERSTOUT0/1_RST are NOT available in YYH's tree - omit them
 set -ex
 
 DTS="target/linux/airoha/dts/an7581-xr1710g-ubi.dts"
@@ -7,11 +9,7 @@ DTS="target/linux/airoha/dts/an7581-xr1710g-ubi.dts"
 echo "=== Before patch ==="
 grep -n 'pcie0\|pcie1\|num-lanes\|airoha,scu\|reg-names' $DTS | head -10
 
-# 1. Add missing PCIe register, reset, and lane configuration
-#    Insert after "status = \"okay\";" in &pcie0 block
 python3 << 'PYEOF'
-import re
-
 dts_file = "target/linux/airoha/dts/an7581-xr1710g-ubi.dts"
 with open(dts_file, 'r') as f:
     content = f.read()
@@ -28,14 +26,10 @@ new = '''&pcie0 {
 \treg-names = "pcie-mac", "sec-pcie-mac";
 
 \tresets = <&scuclk EN7581_PCIE0_RST>,
-\t\t <&scuclk EN7581_PCIE1_RST>,
-\t\t <&scuclk EN7581_PCIC_PERSTOUT0_RST>,
-\t\t <&scuclk EN7581_PCIC_PERSTOUT1_RST>;
+\t\t <&scuclk EN7581_PCIE1_RST>;
 
 \treset-names = "phy-lane0",
-\t\t      "phy-lane1",
-\t\t      "perstout",
-\t\t      "sec-perstout";
+\t\t      "phy-lane1";
 
 \tnum-lanes = <2>;
 
