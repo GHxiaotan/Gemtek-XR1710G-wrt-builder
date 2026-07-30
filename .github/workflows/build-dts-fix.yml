@@ -1,0 +1,86 @@
+name: Build XR1710G (DTS Fix - Bridge Offload + WiFi)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout builder repo
+        uses: actions/checkout@v4
+        with:
+          path: builder
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ack antlr3 asciidoc autoconf automake autopoint \
+            binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
+            dos2unix fastjar flex g++ g++-multilib gawk gcc-multilib gettext git gperf \
+            haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev \
+            libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev \
+            libreadline-dev libssl-dev libtool lrzsz mkisofs ninja-build p7zip p7zip-full \
+            patch pkgconf python3 python3-distutils python3-pyelftools libpython3-dev \
+            qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs \
+            upx-ucl unzip vim wget xmlto xxd zlib1g-dev file
+
+      - name: Clone YYH2913 source (integration branch)
+        run: |
+          git clone --depth=1 -b xr1710g-6.18-integration \
+            https://github.com/YYH2913/openwrt.git $GITHUB_WORKSPACE/openwrt
+
+      - name: Fix DTS - Add missing PCIe configuration
+        working-directory: ${{ github.workspace }}/openwrt
+        run: bash ${{ github.workspace }}/builder/scripts/fix-dts-pcie.sh
+
+      - name: Build firmware
+        working-directory: ${{ github.workspace }}/openwrt
+        run: |
+          export FORCE_UNSAFE_CONFIGURE=1
+
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+          # Set target device
+          cat > .config << 'EOF'
+          CONFIG_TARGET_airoha=y
+          CONFIG_TARGET_airoha_an7581=y
+          CONFIG_TARGET_airoha_an7581_DEVICE_econet_xr1710g-ubi=y
+          EOF
+          sed -i 's/^ *//' .config
+
+          make defconfig
+
+          # Add NF_FLOW_TABLE_BRIDGE after defconfig
+          sed -i '/CONFIG_NF_FLOW_TABLE_BRIDGE/d' .config
+          echo "CONFIG_NF_FLOW_TABLE_BRIDGE=m" >> .config
+
+          # Verify
+          echo "=== Verification ==="
+          grep "CONFIG_TARGET_PROFILE" .config
+          grep "CONFIG_NF_FLOW_TABLE_BRIDGE" .config
+          grep "CONFIG_NF_FLOW_TABLE" .config | head -5
+
+          # Build
+          make download -j$(nproc)
+          make -j$(nproc) || make -j1 V=s
+
+      - name: Collect firmware
+        if: success() || failure()
+        working-directory: ${{ github.workspace }}/openwrt
+        run: |
+          mkdir -p ${{ github.workspace }}/release
+          find bin/targets -name "*.itb" -exec cp {} ${{ github.workspace }}/release/ \; 2>/dev/null || true
+          find bin/targets -name "sha256sums" -exec cp {} ${{ github.workspace }}/release/ \; 2>/dev/null || true
+          cp .config ${{ github.workspace }}/release/config.buildinfo 2>/dev/null || true
+          ls -lh ${{ github.workspace }}/release/ 2>/dev/null || echo "No release files"
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: XR1710G-dts-fix-bridge-offload
+          path: release/
+          retention-days: 90
