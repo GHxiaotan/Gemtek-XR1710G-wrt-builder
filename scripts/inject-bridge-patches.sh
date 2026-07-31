@@ -13,9 +13,8 @@ echo "=== Step 1: Copy patches that apply cleanly ==="
 cp "$BUILDER_PATCHES/generic/9991-bonding-expose-selected-slave-through-forward-path.patch" "$GENERIC_PATCH/"
 echo "✅ 9991 (bonding LAG path)"
 
-# 990-01 (bridge FDB roaming) - modifies nf_flow_table (untouched by 675)
-cp "$BUILDER_PATCHES/airoha/990-01-smartrg-netfilter-nf_flow_table-invalidate-flows-on-bridge-FDB-roaming.patch" "$AIROHA_PATCH/"
-echo "✅ 990-01 (bridge FDB roaming)"
+# 990-01 (bridge FDB roaming) - SKIP: already in naoki66's tree (same md5)
+echo "⏭️  990-01 (already in naoki66)"
 
 # 9990 airoha (WLAN PPE binding) - modifies airoha_ppe.c (untouched by 675)
 cp "$BUILDER_PATCHES/airoha/9990-net-airoha-bind-WLAN-bound-flows-on-PPE-driver-L2-cache-miss.patch" "$AIROHA_PATCH/"
