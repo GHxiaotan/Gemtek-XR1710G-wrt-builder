@@ -7,6 +7,12 @@ BUILDER_PATCHES="$1"
 GENERIC_PATCH="target/linux/generic/pending-6.18"
 AIROHA_PATCH="target/linux/airoha/patches-6.18"
 
+# Ensure we're in the openwrt source directory
+OPENWRT_DIR="${2:-.}"
+cd "$OPENWRT_DIR"
+echo "Working directory: $(pwd)"
+ls include/linux/netdevice.h || { echo "ERROR: netdevice.h not found!"; exit 1; }
+
 echo "=== Step 1: Copy patches that apply cleanly ==="
 
 # 9991 (bonding LAG path) - only adds DEV_PATH_LAG enum, no conflict

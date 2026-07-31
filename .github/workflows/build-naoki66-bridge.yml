@@ -37,7 +37,8 @@ jobs:
         working-directory: ${{ github.workspace }}/openwrt
         run: |
           bash ${{ github.workspace }}/builder/scripts/inject-bridge-patches.sh \
-            ${{ github.workspace }}/builder/patches/naoki66-bridge
+            ${{ github.workspace }}/builder/patches/naoki66-bridge \
+            ${{ github.workspace }}/openwrt
 
       - name: Build firmware
         working-directory: ${{ github.workspace }}/openwrt
